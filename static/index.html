@@ -23,6 +23,64 @@
     <script src="json2.js"></script>
   </head> 
   <body bgcolor="black" height="100%" width="100%"> 
+      <div style="width: 100%;
+      height: 260px;
+      font-family: Comic Sans MS;
+      background-color: rgb(149, 178, 230);">  
+      <br>
+      <p style="color: bisque;
+                text-align: center;
+                font-size: 3.5ex;"> <b>
+                    Drawing ...</b></p>
+    
+      <!-- <form>
+        <label for="lines">Choose your Stroke Line Width:</label>
+            <select name="lines" id="strokeWidth_input">
+                <option value="1">1</option>
+                <option value="10">10</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+      </form> -->
+      <p style="
+               font-size: 2.5ex;
+               margin-left: 10px;
+               color: rgba(9, 83, 144, 0.806);">
+            Enter your stroke line width, then press submit.</p>
+      
+      <input type="number" name="lines" id="strokeWidth_input" 
+            style="padding: 10px;
+                   border-radius: 8px;
+                   margin-left: 10px;">
+      <input type="submit" 
+             value="SUMBIT" 
+             onclick="showInput();" 
+             style="
+                   background-color: #e5bd7c;
+                   cursor: pointer;
+                   color: white;
+                   font-size: 16px;
+                   border-radius: 8px;
+                   font-family: fantasy, sans-serif;
+                   font-weight: bold;">
+      
+      <button 
+            onclick="clear_button()";  
+            style = "
+                    cursor: pointer;
+                    border-radius: 8px;
+                    color: white;
+                    display: block;
+                    font-size: 16px;
+                    margin-bottom: 6px;
+                    margin-right: 6%;
+                    float: right;
+                    background-color: #e5bd7c;
+                    font-family: fantasy, sans-serif;
+                    font-weight: bold;">
+                    CLEAR THE SCREEN</button>
+    </div>
+      
     <canvas id="c" width="100%" height="100%" style="-webkit-tap-highlight-color: transparent;"></canvas> 
     <script>
 var canvas = document.getElementById('c');
@@ -30,6 +88,7 @@ var host = window.location.host;
 var context = canvas.getContext("2d");
 var W = canvas.width  = window.innerWidth-6;
 var H = canvas.height = window.innerHeight-50;
+var line_width = 1;
 
 
 function sendJSONXMLHTTPRequest(url, objects, callback) {
@@ -40,6 +99,8 @@ function sendJSONXMLHTTPRequest(url, objects, callback) {
                 if (xhr.status==200) {
                     //XXX: parse some JSON from the request!
                     //XXX: Pass the data to the callback!
+                    var r = JSON.parse(xhr.responseText)
+                    callback(r)
                 }
             } 
             catch(e) {
@@ -50,6 +111,11 @@ function sendJSONXMLHTTPRequest(url, objects, callback) {
     //XXX: POST to a URL
     //XXX: set the mimetype and the accept headers!
     // Remember to use application/json !
+    xhr.open('POST', url);
+    xhr.setRequestHeader('Content-type', 'application/json');
+    xhr.setRequestHeader('Accept', 'application/json');
+    xhr.send(JSON.stringify(objects));
+   
 }
 
 
@@ -59,11 +125,15 @@ world = {};
 function drawCircle(context,entity) {
     with(context) {
         beginPath();              
-        lineWidth = 3;
+        lineWidth = line_width;
         var x = entity["x"];
         var y = entity["y"];
         //moveTo(x,y);
         fillStyle = entity["colour"];
+        // var gradient = context.createLinearGradient(0, 0, 170, 0);
+        // gradient.addColorStop("0", "magenta");
+        // gradient.addColorStop("0.5", "blue");
+        // gradient.addColorStop("1.0", "red");
         strokeStyle = fillStyle;
         arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
         stroke();                                
@@ -72,10 +142,10 @@ function drawCircle(context,entity) {
 
 function prepEntity(entity) {
     if (!entity["colour"]) {
-        entity["colour"] = "#FF0000";
+        entity["colour"] = "#FFF000";
     }
     if (!entity["radius"]) {
-        entity["radius"] = 50;
+        entity["radius"] = 10;
     }
     return entity;
 }
@@ -138,7 +208,7 @@ function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just  modified!
-
+    sendJSONXMLHTTPRequest("/entity/"+entity, data, (z)=>{}) 
 }
 
 var counter = 0;
@@ -247,24 +317,45 @@ mouse = (function() {
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'cornflowerblue','radius':5});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'orchid', 'radius':5});
 });
 
+
+
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
-                          'radius':10});
+    addEntityWithoutName({'x':x,'y':y,'colour': 'yellowgreen',
+                          'radius':1});
 });
+
+
 
 
 function update() {
     //XXX: TODO Get the world from the webservice using a XMLHTTPRequest
+    //sendJSONXMLHTTPRequest(url, objects, callback) {
+    sendJSONXMLHTTPRequest("/world", {}, (newWorld) => {
+        world = newWorld;
+    });
+    drawNextFrame();
     drawFrame();
+
 }
 
+function clear_button() {
+    sendJSONXMLHTTPRequest("/clear", {}, (newWorld) => {
+        world = newWorld;
+    });
+
+}
+
+function showInput() {
+        
+        line_width = document.getElementById("strokeWidth_input").value;
+    }
 // 30 frames per second
 setInterval( update, 1000/30.0);
 
